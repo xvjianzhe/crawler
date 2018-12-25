@@ -13,7 +13,7 @@ from selenium.webdriver import ActionChains
 import re
 import json
 
-
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 class Crawler(object):
@@ -46,7 +46,20 @@ class Crawler(object):
     #     self._config = value
 
     def __init__(self):
-        self._driver = None
+        self.dc = DesiredCapabilities.CHROME
+        self.dc['loggingPrefs'] = {'performance': 'ALL'}
+        self._driver = webdriver.Chrome(chrome_options=self.chrome_options(),desired_capabilities=self.dc)
+
+    @property
+    def driver(self):
+
+        return self._driver
+
+    @driver.setter
+    def driver(self, driver):
+        self._driver = driver
+
+
 
     def start_data_mining(self):
         """
@@ -63,10 +76,9 @@ class Crawler(object):
         :return: 网页的HTML
         """
         logging.info("正在爬取页面")
-        driver = webdriver.Chrome(chrome_options=self.chrome_options())
-        driver.get(SITE)
-        html = driver.page_source
-        driver.close()
+        self.driver.get(SITE)
+        self.getHttpStatus(self.driver)
+        html = self.driver.page_source
         bsObj = soup(html, "html5lib")
         self.parse_page(bsObj)
 
@@ -102,7 +114,7 @@ class Crawler(object):
                            'hits': hits,
                            'definition': definition})
 
-            self.parse_video_page("http://www.xnxx.com%s" % videoUrl)
+            # self.parse_video_page("http://www.xnxx.com%s" % videoUrl)
         logging.info("页面数据解析完成")
         return result
 
@@ -154,14 +166,13 @@ class Crawler(object):
         :param video_page_url: 视频页面URL
         :return: 解析成功的视频URL
         """
-        print(video_page_url)
-        driver = webdriver.Chrome(chrome_options=self.chrome_options())
-        driver.get(video_page_url)
-        # self.getHttpStatus(driver)
+        self.driver.get(video_page_url)
+        resu = self.getHttpStatus(self.driver)
+        # print(resu)
         try:
             # TODO 尝试获取查询信息，否则使用while true 的形式获取查询进度
-            if WebDriverWait(driver, 30,500).until(EC.presence_of_element_located((By.ID, "video-player-bg"))):
-                html = soup(driver.page_source, "html5lib")
+            if WebDriverWait(self.driver, 30,500).until(EC.presence_of_element_located((By.ID, "video-player-bg"))):
+                html = soup(self.driver.page_source, "html5lib")
                 bgs =  html.select("#video-player-bg script")
                 for s in bgs:
                     script_content = s.get_text()
@@ -173,8 +184,7 @@ class Crawler(object):
         except Exception as e :
             print(e)
         finally:
-            driver.close()
-            self.close()
+            pass
 
     def getHttpStatus(self, driver):
         """
@@ -182,17 +192,30 @@ class Crawler(object):
         :param driver:
         :return:
         """
-        for responseReceived in driver.get_log('browser'):
-            try:
-                response = json.loads(responseReceived[u'message'])[u'message'][u'params'][u'response']
-                print(response)
-                if response[u'url'] == driver.current_url:
-                    print(response[u'status'])
-                    print(response[u'statusText'])
-                    return (response[u'status'], response[u'statusText'])
-            except:
-                pass
-            return None
+        file = open("log.txt", mode="a")
+        try:
+            logs = driver.get_log('performance')
+            for log in logs:
+                file.write(log['message'])
+                file.write("\r\n")
+        except Exception as e:
+            pass
+        finally:
+            file.close()
+
+        # logs = [json.loads(log['message'])['message'] for log in driver.get_log('performance')]
+        # print(logs)
+        # for responseReceived in driver.get_log('performance'):
+        #     try:
+        #         response = json.loads(responseReceived[u'message'])[u'message'][u'params'][u'response']
+        #         print(response)
+        #         if response[u'url'] == driver.current_url:
+        #             print(response[u'status'])
+        #             print(response[u'statusText'])
+        #             return (response[u'status'], response[u'statusText'])
+        #     except:
+        #         pass
+        #     return None
 
     # 解析视频信息
     def parse_thumb_under(self, thumb_under):
@@ -232,8 +255,8 @@ class Crawler(object):
         :return: chrome 选项
         """
         chrome_options = Options()
-        # chrome_options.add_argument('--headless')
-        # chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-gpu')
         prefs = {"profile.managed_default_content_settings.images": 2}
         chrome_options.add_experimental_option("prefs", prefs)
         return chrome_options
