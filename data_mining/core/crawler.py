@@ -14,7 +14,8 @@ import re
 import json
 
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-
+from .xnxx_crawler_video_list import XNXXCrawlerVideoList
+from data_mining.models.crawler_config import CrawlerConfig
 
 class Crawler(object):
     """
@@ -45,10 +46,14 @@ class Crawler(object):
     # def config(self, value):
     #     self._config = value
 
-    def __init__(self):
+    def __init__(self, config:CrawlerConfig):
         self.dc = DesiredCapabilities.CHROME
         self.dc['loggingPrefs'] = {'performance': 'ALL'}
         self._driver = webdriver.Chrome(chrome_options=self.chrome_options(),desired_capabilities=self.dc)
+        driver = webdriver.Chrome(chrome_options=self.chrome_options(),desired_capabilities=self.dc)
+        self._crawler_config = config
+        if self._crawler_config.site == "www.xnxx.com":
+            self._crawler = XNXXCrawlerVideoList(driver, self._crawler_config.data_url)
 
     @property
     def driver(self):
@@ -66,8 +71,7 @@ class Crawler(object):
         开始数据采集
         :return:
         """
-
-        # data_mining_engine = minning_engine.factory(self.config)
+        self._crawler.start_data_mining()
 
     def get_page(self):
         """
@@ -188,7 +192,7 @@ class Crawler(object):
 
     def getHttpStatus(self, driver):
         """
-        获取HTTP请求状态
+        TODO：获取HTTP请求状态，暂定写到日志文件中
         :param driver:
         :return:
         """
@@ -202,20 +206,6 @@ class Crawler(object):
             pass
         finally:
             file.close()
-
-        # logs = [json.loads(log['message'])['message'] for log in driver.get_log('performance')]
-        # print(logs)
-        # for responseReceived in driver.get_log('performance'):
-        #     try:
-        #         response = json.loads(responseReceived[u'message'])[u'message'][u'params'][u'response']
-        #         print(response)
-        #         if response[u'url'] == driver.current_url:
-        #             print(response[u'status'])
-        #             print(response[u'statusText'])
-        #             return (response[u'status'], response[u'statusText'])
-        #     except:
-        #         pass
-        #     return None
 
     # 解析视频信息
     def parse_thumb_under(self, thumb_under):
