@@ -1,1 +1,1 @@
-from . import *
+from data_mining.serializers import crawler_config_serializer, video_serializer

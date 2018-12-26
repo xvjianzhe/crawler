@@ -1,1 +1,1 @@
-from . import *
+from data_mining.models import crawler_config, video
