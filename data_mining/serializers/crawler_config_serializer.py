@@ -6,4 +6,5 @@ class CrawlerConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = crawler_config.CrawlerConfig
-        fields = "__all__"
+        # fields = "__all__"
+        exclude = ('create_time', 'update_time',)
