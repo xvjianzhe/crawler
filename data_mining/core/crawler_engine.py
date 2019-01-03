@@ -1,10 +1,20 @@
 
+import multiprocessing as mp
+import time
+import os
 
 class CrawlerEngine(object):
     # 当前进程数量
     _currentProcessCount = 0
     # 最大线程数量
     _processMaxCount = 10 # 后面修改成CPU核数
+
+    # 待爬取网页队列
+    _siteQueue=[]
+    # 待解析网页源码队列
+    _pageSourceQueue=[]
+    # 待下载数据队列
+    _dataQueue = []
 
     def __init__(self, baseSiteConfig, analyzeConfig, fileStorageConfig, crawlerConfig):
         """
@@ -36,7 +46,13 @@ class CrawlerEngine(object):
         则终止下载进程，否则等待下载队列再次填充
         :return:
         """
-        browsser = self._getBrowser()
+        p = mp.Pool()
+        for i in range(10):
+            print('添加任务')
+            p.apply_async(self._getBrowser)
+        p.close()
+        p.join()
+        # browsser = self._getBrowser()
         pass
 
     def _prepareProcessPool(self):
@@ -57,10 +73,11 @@ class CrawlerEngine(object):
         计算每个进程池最大可以启动的进程限制，如果配置中有指定最大进程数量，使用配置指定的，否则使用CPU核数
         :return:
         """
-        if self._crawlerConfig["maxProcessCount"] is None:
-            self._processMaxCount = 10 # TODO：计算CPU核数
-        self._processMaxCount = self._crawlerConfig["maxProcessCount"]
-        return self._processMaxCount
+        # if self._crawlerConfig["maxProcessCount"] is None:
+        #     self._processMaxCount = 10 # TODO：计算CPU核数
+        # self._processMaxCount = self._crawlerConfig["maxProcessCount"]
+        # return self._processMaxCount
+        pass
 
     def _buildBrowserProcessPool(self):
         """
@@ -89,8 +106,12 @@ class CrawlerEngine(object):
         否则返回一个进程标识
         :return:
         """
-        if self._currentProcessCount < self._processMaxCount:
-            return self._getIdleProcess()
+        time.sleep(4)
+        print('进程ID：------%s------' % os.getpid())
+
+
+        # if self._currentProcessCount < self._processMaxCount:
+        #     return self._getIdleProcess()
         return None
 
     def _getIdleProcess(self):
@@ -99,3 +120,8 @@ class CrawlerEngine(object):
         :return:
         """
         pass
+
+
+if __name__ == '__main__':
+    c = CrawlerEngine('','','','')
+    c.startCrawler()
